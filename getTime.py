@@ -70,6 +70,7 @@ def hough_transform():
     # display images
     # cv.imshow('original image', img)
     # cv.imshow("cropped clock image", crop_img)
+    # cv.waitKey(0)
 
     return crop_img
 
@@ -130,7 +131,7 @@ def line_transform(crop_img):
             k1 += 1
             # cv.line(cdst, p1, p2, (0, 0, 255), 2, cv.LINE_AA)
 
-    if linesP_img is not None:
+    if len(linesP_img) is not None:
         k = 50
         print(len(linesP_img))
         max_length = 0
@@ -150,27 +151,124 @@ def line_transform(crop_img):
                 hour_hand = l2
             print(l2)
             print(length_1)
+            print("shape")
+            print(cdst.shape)
+            # cv.line(cdst, p1_2, (round(cdst.shape[0]/2), round(cdst.shape[1]/2)), (0, 150, 200), 2, cv.LINE_AA)
             cv.line(cdstP, p1_2, p2_2, (k, 0, 0), 2, cv.LINE_AA)
             k += 50
 
     linesP_img_final = [minute_hand, hour_hand]
     print(linesP_img_final)
 
-    if linesP_img_final is not None:
+    angles = []
+
+    if len(linesP_img_final) == 2:
         for i in range(0, len(linesP_img_final)):
             l3 = linesP_img_final[i]
             p1_3 = (l3[0], l3[1])
             p2_3 = (l3[2], l3[3])
+            dy = l3[3] - l3[1]
+            dx = l3[2] - l3[0]
             # angle1 = math.atan2(abs((p2_3[1] - p1_3[1])), abs((p2_3[0] - p1_3[0]))) * 180 / math.pi
-            angle2 = math.atan2((p2_3[1] - p1_3[1]), (p2_3[0] - p1_3[0])) * 180 / math.pi
-            # print(angle1)
-            print(angle2)
+            if dy == 0 and dx < 0:
+                angle = 0
+            if dy == 0 and dx > 0:
+                angle = 180
+            if dy > 0 and dx == 0:
+                angle = -90
+            if dy < 0 and dx == 0:
+                angle = 90
+            if dy != 0 and dx != 0:
+                angle1 = math.degrees(math.atan(dy / dx))
+            print(l3)
+            print(dy)
+            print(dx)
+            print(angle1)
+            angle = 0
+            if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
+                print("origin first")
+                if dy < 0:
+                    angle = -angle1
+                if dy > 0:
+                    angle = -angle1
+            else:
+                print("origin second")
+                if dy > 0:
+                    angle = 180 - angle1
+                if dy < 0:
+                    angle = -180 - angle1
+            # if dy < 0 and dx < 0:
+                # angle = -angle1
+            # if dy > 0 and dx < 0:
+                # angle = angle1
+            angles.append(angle)
+            # cv.line(cdst, p1_3, (34 , 0), (0, 100, 200), 2, cv.LINE_AA)
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
+    else:
+        print("Image detection error, please check parameters")
 
+    # cv.line(cdst, (0, 270), (600, 270), (0, 100, 200), 2, cv.LINE_AA)
     cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdst)
-    cv.imshow("Before ", cdstP)
+    # cv.imshow("Before ", cdstP)
+    print(angles)
+    # print("-------------------------------")
+    # print(math.degrees(math.atan2(-1, 1)))
+    # print("-------------------------------")
+    return angles
+
+def getTime(angles):
+    minute_angle = angles[0]
+    hour_angle = angles[1]
+    print(minute_angle)
+    print(hour_angle)
+    minutes_temp = 0
+    minutes = ""
+    hours = ""
+    if 0 <= minute_angle <= 90:
+        minutes_temp = round(15 - ((1/6) * minute_angle))
+    if 90 < minute_angle <= 180:
+        minutes_temp = round(60 - ((1/6) * (minute_angle - 90)))
+    if -180 < minute_angle < -90:
+        minutes_temp = round(30 + ((1 / 6) * ((-1 * minute_angle) - 90)))
+    if -90 <= minute_angle < 0:
+        minutes_temp = round(15 + ((1 / 6) * (-1 * minute_angle)))
+
+    minutes = str(minutes_temp)
+    if minutes_temp < 10:
+        minutes = "0" + minutes
+
+    if 0 < hour_angle <= 30:
+        hours = "02"
+    if 30 < hour_angle <= 60:
+        hours = "01"
+    if 60 < hour_angle <= 90:
+        hours = "12"
+    if 90 < hour_angle <= 120:
+        hours = "11"
+    if 120 < hour_angle <= 150:
+        hours = "10"
+    if 150 < hour_angle <= 180:
+        hours = "09"
+    if -180 < hour_angle <= -150:
+        hours = "08"
+    if -150 < hour_angle <= -120:
+        hours = "07"
+    if -120 < hour_angle <= -90:
+        hours = "06"
+    if -90 < hour_angle <= -60:
+        hours = "05"
+    if -60 < hour_angle <= -29:
+        hours = "04"
+    if -29 < hour_angle <= 0:
+        hours = "03"
+
+    print("Time : ")
+    print(hours)
+    print(minutes)
+    print(hours + ":" + minutes)
     cv.waitKey(0)
 
 if __name__ == "__main__":
     crop_img = hough_transform()
-    line_transform(crop_img)
+    angles = line_transform(crop_img)
+    getTime(angles)
