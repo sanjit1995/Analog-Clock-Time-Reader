@@ -80,13 +80,11 @@ def line_transform(crop_img):
     canny_img = cv.Canny(crop_img, 75, 150)
     cdst = cv.cvtColor(canny_img, cv.COLOR_GRAY2BGR)
     cdstP = np.copy(cdst)
-    #cv.imshow('canny', cdst)
 
     # Probabilistic Line Transform
     linesP_img = cv.HoughLinesP(canny_img, 1, np.pi / 180, 50, None, 70, 5)
 
     # Draw the lines
-    # linesP_img_copy = linesP_img;
     if linesP_img is not None:
         k1 = 0
         for i in linesP_img:
@@ -94,10 +92,6 @@ def line_transform(crop_img):
             length = math.sqrt(abs((l[2]-l[0])**2 + (l[3]-l[1])**2))
             k2 = k1
             for j in linesP_img[k1:]:
-                # print("j : ")
-                # print(j)
-                # print("k2 : ")
-                # print(k2)
                 l1 = j[0]
                 comparison = l1 == l
                 equal_arrays = comparison.all()
@@ -106,34 +100,21 @@ def line_transform(crop_img):
                     continue
                 else:
                     length_1 = math.sqrt(abs((l1[2] - l1[0])**2 + (l1[3] - l1[1])**2))
-                    # print(l)
-                    # print(l1)
-                    # print("Lengths : ")
-                    # print(length)
-                    # print(length_1)
                     if abs(length_1 - length) < 10:
+                        # Delete the lines which are of same length, which could be two lines of the same hand of the clock
                         if length > length_1:
-                            # print("where deleted : ")
-                            # print(linesP_img_copy[k2])
                             linesP_img = np.delete(linesP_img, k2, 0)
                             k2 -= 1
                         else:
-                            # print("where deleted : ")
-                            # print(linesP_img_copy[k1])
                             linesP_img = np.delete(linesP_img, k1, 0)
                             k1 -= 1
                             break
-                        # linesP_img_copy = np.delete(linesP_img_copy, k, 0)
-                        # print("new array : ")
-                        # print(linesP_img_copy)
-                # print("-----------------------------------")
                 k2 += 1
             k1 += 1
             # cv.line(cdst, p1, p2, (0, 0, 255), 2, cv.LINE_AA)
 
     if len(linesP_img) is not None:
         k = 50
-        print(len(linesP_img))
         max_length = 0
         minute_hand = []
         min_length = math.sqrt(abs((linesP_img[0][0][2] - linesP_img[0][0][0]) ** 2 + (linesP_img[0][0][3] - linesP_img[0][0][1]) ** 2))
@@ -149,16 +130,11 @@ def line_transform(crop_img):
             if length_1 < min_length:
                 min_length = length_1
                 hour_hand = l2
-            print(l2)
-            print(length_1)
-            print("shape")
-            print(cdst.shape)
             # cv.line(cdst, p1_2, (round(cdst.shape[0]/2), round(cdst.shape[1]/2)), (0, 150, 200), 2, cv.LINE_AA)
             cv.line(cdstP, p1_2, p2_2, (k, 0, 0), 2, cv.LINE_AA)
             k += 50
 
     linesP_img_final = [minute_hand, hour_hand]
-    print(linesP_img_final)
 
     angles = []
 
@@ -180,49 +156,27 @@ def line_transform(crop_img):
                 angle = 90
             if dy != 0 and dx != 0:
                 angle1 = math.degrees(math.atan(dy / dx))
-            print(l3)
-            print(dy)
-            print(dx)
-            print(angle1)
             angle = 0
             if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
-                print("origin first")
-                if dy < 0:
-                    angle = -angle1
-                if dy > 0:
-                    angle = -angle1
+                angle = -angle1
             else:
-                print("origin second")
                 if dy > 0:
                     angle = 180 - angle1
                 if dy < 0:
                     angle = -180 - angle1
-            # if dy < 0 and dx < 0:
-                # angle = -angle1
-            # if dy > 0 and dx < 0:
-                # angle = angle1
             angles.append(angle)
             # cv.line(cdst, p1_3, (34 , 0), (0, 100, 200), 2, cv.LINE_AA)
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     else:
         print("Image detection error, please check parameters")
 
-    # cv.line(cdst, (0, 270), (600, 270), (0, 100, 200), 2, cv.LINE_AA)
     cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdst)
-    # cv.imshow("Before ", cdstP)
-    print(angles)
-    # print("-------------------------------")
-    # print(math.degrees(math.atan2(-1, 1)))
-    # print("-------------------------------")
     return angles
 
 def getTime(angles):
     minute_angle = angles[0]
     hour_angle = angles[1]
-    print(minute_angle)
-    print(hour_angle)
     minutes_temp = 0
-    minutes = ""
     hours = ""
     if 0 <= minute_angle <= 90:
         minutes_temp = round(15 - ((1/6) * minute_angle))
@@ -262,10 +216,7 @@ def getTime(angles):
     if -29 < hour_angle <= 0:
         hours = "03"
 
-    print("Time : ")
-    print(hours)
-    print(minutes)
-    print(hours + ":" + minutes)
+    print("Time : " + hours + ":" + minutes)
     cv.waitKey(0)
 
 if __name__ == "__main__":
