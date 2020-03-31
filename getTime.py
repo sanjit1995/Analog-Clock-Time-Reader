@@ -8,7 +8,7 @@ def nothing(x):
 
 def hough_transform():
     # Choose an image
-    filename = 'data/19.jpg'
+    filename = 'data/29.jpg'
 
     # Loads an image
     img = cv.imread(cv.samples.findFile(filename), cv.IMREAD_COLOR)
@@ -119,8 +119,6 @@ def line_transform(crop_img):
         hour_hand = []
         for i in range(0, len(linesP_img)):
             l2 = linesP_img[i][0]
-            p1_2 = (l2[0], l2[1])
-            p2_2 = (l2[2], l2[3])
             length_1 = math.sqrt(abs((l2[2] - l2[0]) ** 2 + (l2[3] - l2[1]) ** 2))
             if length_1 > max_length:
                 max_length = length_1
@@ -131,65 +129,71 @@ def line_transform(crop_img):
 
     # Save only the hands of the clock with minimum and maximum lengths as minute_hand and hour_hand
     linesP_img_final = [minute_hand, hour_hand]
+    length_minute_hand = math.sqrt(abs((minute_hand[2] - minute_hand[0]) ** 2 + (minute_hand[3] - minute_hand[1]) ** 2))
+    if length_minute_hand > 250:
+        linesP_img_final = np.delete(linesP_img_final, 1, 0)
 
     angles = []
-    print(linesP_img_final)
 
     # If the clock has 2 detected separate lines for the two hands
     if len(linesP_img_final) == 2 and len(linesP_img_final[0]) > 0 and len(linesP_img_final[1]) > 0:
         for i in range(0, len(linesP_img_final)):
             l3 = linesP_img_final[i]
+            print(l3)
+            length_1 = math.sqrt(abs((l3[2] - l3[0]) ** 2 + (l3[3] - l3[1]) ** 2))
             p1_3 = (l3[0], l3[1])
             p2_3 = (l3[2], l3[3])
             dy = l3[3] - l3[1]
             dx = l3[2] - l3[0]
             angle1 = angle = 0
-            if dy == 0 and dx < 0:
-                angle = 0
-            if dy == 0 and dx > 0:
-                angle = 180
-            if dy > 0 and dx == 0:
-                angle = -90
-            if dy < 0 and dx == 0:
-                angle = 90
+            if dy == 0:
+                angle1 = 180
+            if dx == 0:
+                angle1 = 90
             if dy != 0 and dx != 0:
                 angle1 = math.degrees(math.atan(dy / dx))
             if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
                 angle = -angle1
             else:
-                if dy > 0:
+                if dy >= 0:
                     angle = 180 - angle1
                 if dy < 0:
                     angle = -180 - angle1
             angles.append(angle)
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     else:
-        print("Image detection error, please check parameters")
+        # When both hands are in one straight line and both are clearly visible
         l3 = linesP_img_final[0]
+        length_1 = math.sqrt(abs((l3[2] - l3[0]) ** 2 + (l3[3] - l3[1]) ** 2))
         p1_3 = (l3[0], l3[1])
         p2_3 = (l3[2], l3[3])
         dy = l3[3] - l3[1]
         dx = l3[2] - l3[0]
         angle1 = 0
         if dy == 0 and dx < 0:
-            angle1 = 0
-        if dy == 0 and dx > 0:
             angle1 = 180
+        if dy == 0 and dx > 0:
+            angle1 = 0
         if dy > 0 and dx == 0:
-            angle1 = -90
-        if dy < 0 and dx == 0:
             angle1 = 90
+        if dy < 0 and dx == 0:
+            angle1 = -90
         if dy != 0 and dx != 0:
             angle1 = math.degrees(math.atan(dy / dx))
-        hour_angle = -angle1
-        if dy > 0:
-            minute_angle = 180 - angle1
-        if dy < 0:
-            minute_angle = -180 - angle1
-        angles = [hour_angle, minute_angle]
-        print(angles)
+        if l3[0] < abs(cdst.shape[0] - l3[2]):
+            hour_angle = -angle1
+            if dy > 0:
+                minute_angle = 180 - angle1
+            if dy < 0:
+                minute_angle = -180 - angle1
+        else:
+            minute_angle = -angle1
+            if dy > 0:
+                hour_angle = 180 - angle1
+            if dy < 0:
+                hour_angle = -180 - angle1
+        angles = [minute_angle, hour_angle]
         cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
-
     cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdst)
     return angles
 
@@ -238,6 +242,7 @@ def getTime(angles):
         hours = "03"
 
     # Print the time
+    print(hour_angle)
     print("Time : " + hours + ":" + minutes)
     cv.waitKey(0)
 
