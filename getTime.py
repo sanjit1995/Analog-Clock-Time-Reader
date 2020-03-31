@@ -8,7 +8,7 @@ def nothing(x):
 
 def hough_transform():
     # Choose an image
-    filename = 'data/2.jpg'
+    filename = 'data/19.jpg'
 
     # Loads an image
     img = cv.imread(cv.samples.findFile(filename), cv.IMREAD_COLOR)
@@ -133,15 +133,17 @@ def line_transform(crop_img):
     linesP_img_final = [minute_hand, hour_hand]
 
     angles = []
+    print(linesP_img_final)
 
     # If the clock has 2 detected separate lines for the two hands
-    if len(linesP_img_final) == 2:
+    if len(linesP_img_final) == 2 and len(linesP_img_final[0]) > 0 and len(linesP_img_final[1]) > 0:
         for i in range(0, len(linesP_img_final)):
             l3 = linesP_img_final[i]
             p1_3 = (l3[0], l3[1])
             p2_3 = (l3[2], l3[3])
             dy = l3[3] - l3[1]
             dx = l3[2] - l3[0]
+            angle1 = angle = 0
             if dy == 0 and dx < 0:
                 angle = 0
             if dy == 0 and dx > 0:
@@ -163,6 +165,30 @@ def line_transform(crop_img):
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     else:
         print("Image detection error, please check parameters")
+        l3 = linesP_img_final[0]
+        p1_3 = (l3[0], l3[1])
+        p2_3 = (l3[2], l3[3])
+        dy = l3[3] - l3[1]
+        dx = l3[2] - l3[0]
+        angle1 = 0
+        if dy == 0 and dx < 0:
+            angle1 = 0
+        if dy == 0 and dx > 0:
+            angle1 = 180
+        if dy > 0 and dx == 0:
+            angle1 = -90
+        if dy < 0 and dx == 0:
+            angle1 = 90
+        if dy != 0 and dx != 0:
+            angle1 = math.degrees(math.atan(dy / dx))
+        hour_angle = -angle1
+        if dy > 0:
+            minute_angle = 180 - angle1
+        if dy < 0:
+            minute_angle = -180 - angle1
+        angles = [hour_angle, minute_angle]
+        print(angles)
+        cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
 
     cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdst)
     return angles
