@@ -140,12 +140,10 @@ def line_transform(crop_img):
         for i in range(0, len(linesP_img_final)):
             l3 = linesP_img_final[i]
             print(l3)
-            length_1 = math.sqrt(abs((l3[2] - l3[0]) ** 2 + (l3[3] - l3[1]) ** 2))
             p1_3 = (l3[0], l3[1])
             p2_3 = (l3[2], l3[3])
             dy = l3[3] - l3[1]
             dx = l3[2] - l3[0]
-            angle1 = angle = 0
 
             # The Hough Line Transform uses a 2-D Co-ordinate system which has its origin at the top-left corner.
             # The +ve X-axis runs from the origin towards right and the +ve Y-axis runs from origin towards bottom
@@ -282,7 +280,6 @@ def getTime(angles):
         hours = "03"
 
     # Print the time
-    print(hour_angle)
     print("Time : " + hours + ":" + minutes)
     cv.waitKey(0)
 
