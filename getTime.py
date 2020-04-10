@@ -195,7 +195,7 @@ def line_transform(crop_img):
             angles.append(angle)
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     else:
-        # When both hands are in one straight line and both are clearly visible
+        # When both hands are in one straight line and both are not clearly visible
         l3 = linesP_img_final[0]
         length_1 = math.sqrt(abs((l3[2] - l3[0]) ** 2 + (l3[3] - l3[1]) ** 2))
         p1_3 = (l3[0], l3[1])
