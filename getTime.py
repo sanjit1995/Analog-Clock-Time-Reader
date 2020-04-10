@@ -5,10 +5,10 @@ import math
 def nothing(x):
     pass
 
-
+# Hough Transform to detect circle pattern of the clock
 def hough_transform():
     # Choose an image
-    filename = 'data/29.jpg'
+    filename = 'data/13.jpg'
 
     # Loads an image
     img = cv.imread(cv.samples.findFile(filename), cv.IMREAD_COLOR)
@@ -28,14 +28,13 @@ def hough_transform():
 
     # Reduce the noise to avoid false circle detection
     gray_img = cv.medianBlur(gray_img, 5)
-    # cv.imshow("blurred", gray_img)
 
     # define a mask which is basically a black filled image of the same size as that of the image
     # used to create a background for the clock
     height, width = gray_img.shape
     mask = np.zeros((height, width), np.uint8)
 
-    # create Hough-Circles, make sure that only the biggest circle is selected
+    # create Hough-Circles, make sure that only the biggest circle is selected depending on the minRadius and maxRadius
     rows = gray_img.shape[0]
     circles = cv.HoughCircles(gray_img, cv.HOUGH_GRADIENT, 1, rows / 8,
                                param1=100, param2=50,
@@ -49,10 +48,10 @@ def hough_transform():
             center = (i[0], i[1])
             radius = i[2]
 
-            # Draw on mask a white filled circle
+            # Draw a white filled circle on the previously created mask
             cv.circle(mask, center, radius, (255, 255, 255), -1)
 
-            # do a bitwise_and which will only make the
+            # do a bitwise_and which will put the clock in a black background
             masked_data = cv.bitwise_and(gray_img, gray_img, mask=mask)
 
             # Apply Threshold
@@ -74,8 +73,9 @@ def hough_transform():
 
     return crop_img
 
-
+# Use Hough Line Transform to detect the hands of clock
 def line_transform(crop_img):
+
     # use canny edge detection to get the edges
     canny_img = cv.Canny(crop_img, 75, 150)
     cdst = cv.cvtColor(canny_img, cv.COLOR_GRAY2BGR)
@@ -135,7 +135,7 @@ def line_transform(crop_img):
 
     angles = []
 
-    # If the clock has 2 detected separate lines for the two hands
+    # If the clock has detected 2 separate lines for the two hands
     if len(linesP_img_final) == 2 and len(linesP_img_final[0]) > 0 and len(linesP_img_final[1]) > 0:
         for i in range(0, len(linesP_img_final)):
             l3 = linesP_img_final[i]
@@ -146,19 +146,54 @@ def line_transform(crop_img):
             dy = l3[3] - l3[1]
             dx = l3[2] - l3[0]
             angle1 = angle = 0
+
+            # The Hough Line Transform uses a 2-D Co-ordinate system which has its origin at the top-left corner.
+            # The +ve X-axis runs from the origin towards right and the +ve Y-axis runs from origin towards bottom
+            # The approach here is to make adjustments so that we bring the origin to the centre of our image.
+            # It makes understanding of angles and determination of time much easier.
+
+            # If the hands are along X-axis
             if dy == 0:
-                angle1 = 180
+                angle1 = 0
+                # to determine which of the 2 end-points of a line are closer to the origin
+                if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
+                    # when 1st point is closer to the origin, then
+                    # Hand in +ve X-axis (original) -> Hand in +ve X-axis (required) {no changes}
+                    angle = angle1
+                else:
+                    # when 2nd point is closer to the origin, then
+                    # Hand in +ve X-axis (original) -> Hand in -ve X-axis (required) {to be made -ve}
+                    angle = 180
+            # If the hands are along Y-axis
             if dx == 0:
                 angle1 = 90
+                # to determine which of the 2 end-points of a line are closer to the origin
+                if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
+                    # when 1st point is closer to the origin, then
+                    # Hand in +ve Y-axis (original) -> Hand in +ve Y-axis (required) {no changes}
+                    angle = angle1
+                else:
+                    # when 2nd point is closer to the origin, then
+                    # Hand in +ve Y-axis (original) -> Hand in -ve Y-axis (required) {to be made -ve}
+                    angle = - angle1
+
+            # If the hands are not perpendicular to the any of the axis
             if dy != 0 and dx != 0:
                 angle1 = math.degrees(math.atan(dy / dx))
-            if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
-                angle = -angle1
-            else:
-                if dy >= 0:
-                    angle = 180 - angle1
-                if dy < 0:
-                    angle = -180 - angle1
+                # to determine which of the 2 end-points of a line are closer to the origin
+                if (abs((cdst.shape[0]/2) - l3[0]) < abs((cdst.shape[0]/2) - l3[2])) or (abs((cdst.shape[1]/2) - l3[1]) < abs((cdst.shape[1]/2) - l3[3])):
+                    # when 1st point is closer to the origin, then
+                    # Hand in 1st quad (original) -> Hand in 4th quad (required) {to be made -ve}
+                    # Hand in 4th quad (original) -> Hand in 1st quad (required) {to be made -ve}
+                    angle = - angle1
+                else:
+                    # Hand in 1st quad (original) -> Hand in 2nd quad (required) {E.g. 79 to 101}
+                    if dy >= 0:
+                        angle = 180 - angle1
+                    # Hand in 4th quad (original) -> Hand in 3rd quad (required) {E.g. -34 to -146}
+                    if dy < 0:
+                        angle = - angle1 - 180
+            # Store the angles into an array
             angles.append(angle)
             cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     else:
@@ -181,7 +216,7 @@ def line_transform(crop_img):
         if dy != 0 and dx != 0:
             angle1 = math.degrees(math.atan(dy / dx))
         if l3[0] < abs(cdst.shape[0] - l3[2]):
-            hour_angle = -angle1
+            hour_angle = - angle1
             if dy > 0:
                 minute_angle = 180 - angle1
             if dy < 0:
@@ -195,13 +230,17 @@ def line_transform(crop_img):
         angles = [minute_angle, hour_angle]
         cv.line(cdst, p1_3, p2_3, (0, 100, 200), 2, cv.LINE_AA)
     cv.imshow("Detected Lines (in red) - Probabilistic Line Transform", cdst)
+    print(angles)
     return angles
 
+# The origin as the centre of our image and the angles are chosen thereby to determine the time
 def getTime(angles):
     minute_angle = angles[0]
     hour_angle = angles[1]
     minutes_temp = 0
     hours = ""
+
+    # Detemine the minutes from the minute_angle
     if 0 <= minute_angle <= 90:
         minutes_temp = round(15 - ((1/6) * minute_angle))
     if 90 < minute_angle <= 180:
@@ -211,6 +250,7 @@ def getTime(angles):
     if -90 <= minute_angle < 0:
         minutes_temp = round(15 + ((1 / 6) * (-1 * minute_angle)))
 
+    # If the minutes is a single digit, we make it a string and attach a 0 to the beginning
     minutes = str(minutes_temp)
     if minutes_temp < 10:
         minutes = "0" + minutes
